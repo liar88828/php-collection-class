@@ -1,65 +1,102 @@
 <?php
 
-class Database {
+class Database
+{
     private PDO $connection;
     private array $arrayQuery = [];
     private array $arraySelect = [];
     private array $updateValues = [];
 
-    public function __construct() {
+    public function __construct()
+    {
         $host = getenv('DB_HOST') ?: 'localhost';
-        $db   = getenv('DB_NAME') ?: 'test';
+        $db = getenv('DB_NAME') ?: 'test';
         $user = getenv('DB_USER') ?: 'root';
         $pass = getenv('DB_PASSWORD') ?: '';
         $charset = 'utf8mb4';
 
         $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
         $options = [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ];
 
-        $this->connection = new PDO($dsn, $user, $pass, $options);
+//        please remove comment
+//        $this->connection = new PDO($dsn, $user, $pass, $options);
     }
 
-    public function select(string $table, array $columns = []) {
+    public function select(string $table, array $columns = [])
+    {
         $cols = empty($columns) ? '*' : implode(', ', $columns);
         $this->arrayQuery[] = "SELECT $cols FROM $table";
         return $this;
     }
 
-    public function where(string $key, string|int|bool $value) {
+    public function where(string $key, string|int|bool $value)
+    {
         $val = is_string($value) ? "'$value'" : $value;
         $this->arrayQuery[] = "WHERE $key = $val";
         return $this;
     }
 
-    public function update(string $table) {
+    public function update(string $table)
+    {
         $this->arrayQuery[] = "UPDATE $table";
         return $this;
     }
 
-    public function set(string $key, string|int|bool $value) {
+
+    public function set(string $key, string|int|bool $value)
+    {
         $this->updateValues[] = ['key' => $key, 'value' => $value];
         return $this;
     }
 
-    public function delete(string $table) {
+    public function delete(string $table)
+    {
         $this->arrayQuery[] = "DELETE FROM $table";
         return $this;
     }
 
-    public function insert(string $table) {
+    public function insert(string $table)
+    {
         $this->arrayQuery[] = "INSERT INTO $table";
         return $this;
     }
 
-    public function column(string $key, string|int|bool $value) {
+
+    public function insertClass(string $table, object|array $data)
+    {
+        $this->arrayQuery[] = "INSERT INTO $table";
+
+        $data = is_object($data) ? get_object_vars($data) : $data;
+
+        foreach ($data as $key => $value) {
+            $this->arraySelect[] = ['key' => $key, 'value' => $value];
+        }
+        return $this;
+    }
+
+    public function updateClass(string $table, object|array $data)
+    {
+        $this->arrayQuery[] = "UPDATE $table";
+
+        $data = is_object($data) ? get_object_vars($data) : $data;
+
+        foreach ($data as $key => $value) {
+            $this->updateValues[] = ['key' => $key, 'value' => $value];
+        }
+        return $this;
+    }
+
+    public function column(string $key, string|int|bool $value)
+    {
         $this->arraySelect[] = ['key' => $key, 'value' => $value];
         return $this;
     }
 
-    public function exec() {
+    public function exec()
+    {
         $finalQuery = '';
 
         if ($this->startsWith($this->arrayQuery[0] ?? '', 'SELECT')) {
@@ -90,28 +127,55 @@ class Database {
         }
 
         echo "Executing: $finalQuery\n";
-        $stmt = $this->connection->prepare($finalQuery);
-        $stmt->execute();
-
-        $this->reset();
-
-        return $stmt->fetchAll();
+//        please remove comment
+//        $stmt = $this->connection->prepare($finalQuery);
+//        $stmt->execute();
+//        $this->reset();
+//        return $stmt->fetchAll();
     }
 
-    private function reset() {
+    private function reset()
+    {
         $this->arrayQuery = [];
         $this->arraySelect = [];
         $this->updateValues = [];
     }
 
-    private function findWhereClause(): string {
+    private function findWhereClause(): string
+    {
         foreach ($this->arrayQuery as $q) {
             if (str_starts_with($q, 'WHERE')) return $q;
         }
         return '';
     }
 
-    private function startsWith(string $haystack, string $needle): bool {
+    private function startsWith(string $haystack, string $needle): bool
+    {
         return str_starts_with($haystack, $needle);
     }
 }
+
+$db = new Database();
+
+//// SELECT
+//$db->select('users', ['id', 'name'])
+//    ->where('id', 5)
+//    ->exec();
+//
+//// UPDATE
+//$db->update('users')
+//    ->set('name', 'John Doe')
+//    ->set('age', 30)
+//    ->where('id', 5)
+//    ->exec();
+//
+//// DELETE
+//$db->delete('users')
+//    ->where('id', 3)
+//    ->exec();
+//
+//// INSERT
+//$db->insert('users')
+//    ->column('name', 'Jane Doe')
+//    ->column('age', 25)
+//    ->exec();
